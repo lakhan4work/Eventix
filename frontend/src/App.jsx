@@ -15,6 +15,7 @@ import { EventsPage } from "./pages/EventsPage"
 import { EventDetailsPage } from "./pages/EventDetailsPage"
 import { MyTicketsPage } from "./pages/MyTicketsPage"
 import { ProfilePage } from "./pages/ProfilePage"
+import { FavoritesPage } from "./pages/FavoritesPage"
 
 // Organizer Pages
 import { OrganizerDashboard } from "./pages/OrganizerDashboard"
@@ -22,12 +23,24 @@ import { OrganizerEventsPage } from "./pages/OrganizerEventsPage"
 import { OrganizerAttendeesPage } from "./pages/OrganizerAttendeesPage"
 import { OrganizerAnalyticsPage } from "./pages/OrganizerAnalyticsPage"
 import { CreateEventPage } from "./pages/CreateEventPage"
+
+
+// ✅ Added Footer Pages
+import About from "./pages/About"
+import Contact from "./pages/Contact"
+import Careers from "./pages/Careers"
+import Blog from "./pages/Blog"
+import Terms from "./pages/Terms"
+import Privacy from "./pages/Privacy"
+import Cookies from "./pages/Cookies"
 import ScrollToTop from "./utills/ScrollToTop"
+import Pricing from "./pages/Pricing";
+
 
 function App() {
   return (
     <BrowserRouter>
-    <ScrollToTop/>
+      <ScrollToTop/>
       <AuthProvider>
         <Routes>
           {/* Public Authentication Route */}
@@ -38,6 +51,18 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="events" element={<EventsPage />} />
             <Route path="events/:id" element={<EventDetailsPage />} />
+            <Route path="favorites" element={<FavoritesPage />} />
+            
+
+            {/* ✅ Added Footer Routes */}
+            <Route path="about" element={<About />} />
+            <Route path="contact" element={<Contact />} />
+            <Route path="careers" element={<Careers />} />
+            <Route path="blog" element={<Blog />} />
+            <Route path="terms" element={<Terms />} />
+            <Route path="privacy" element={<Privacy />} />
+            <Route path="cookies" element={<Cookies />} />
+            
             
             {/* Protected Participant Routes */}
             <Route element={<ProtectedRoute allowedRoles={["participant"]} />}>

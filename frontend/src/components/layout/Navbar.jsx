@@ -10,10 +10,12 @@ export function Navbar() {
   const navigate = useNavigate()
 
   const navLinks = [
-    { name: "Home", path: "/" },
-    { name: "Events", path: "/events" },
-    { name: "My Tickets", path: "/my-tickets" },
-  ]
+  { name: "Home", path: "/" },
+  { name: "Events", path: "/events" },
+  { name: "Explore", path: "/events" },
+  { name: "My Tickets", path: "/my-tickets" },
+  { name: "Favorites", path: "/favorites" },
+]
   
   if (user?.role === "organizer") {
     navLinks.splice(2, 0, { name: "Dashboard", path: "/organizer/dashboard" })
@@ -26,7 +28,7 @@ export function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
@@ -62,10 +64,7 @@ export function Navbar() {
                     {user.name?.charAt(0) || <User className="w-4 h-4" />}
                   </div>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-red-500 hover:bg-red-500/10">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Button>
+                
                 {user.role === 'organizer' && (
                   <Button variant="gradient" className="gap-2 shrink-0" asChild>
                     <Link to="/organizer/create-event">

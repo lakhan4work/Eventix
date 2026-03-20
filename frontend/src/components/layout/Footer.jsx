@@ -19,18 +19,22 @@ export function Footer() {
               Discover & host amazing events, from local meetups to global festivals. Make every moment count.
             </p>
             <div className="flex gap-4">
-              <span className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors">
                 <Facebook className="h-5 w-5" />
-              </span>
-              <span className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
+              </a>
+              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors">
                 <Twitter className="h-5 w-5" />
-              </span>
-              <span className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
+              </a>
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors">
                 <Instagram className="h-5 w-5" />
-              </span>
-              <span className="text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
+              </a>
+              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors">
                 <Youtube className="h-5 w-5" />
-              </span>
+              </a>
             </div>
           </div>
 

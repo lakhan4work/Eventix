@@ -1,7 +1,7 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
-import { Calendar, MapPin, Search, Star, Ticket, TrendingUp, Users, Video } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Calendar, MapPin, Search, Star, Ticket, TrendingUp, Users, Video, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
 import { Select } from "../components/ui/Select"
@@ -26,7 +26,7 @@ const FEATURED_EVENTS = [
     location: "Moscone Center, SF",
     price: "$299",
     organizer: "TechWeb",
-    image: "https://images.unsplash.com/photo-1540317580384-e5d43616b9aa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    image: "https://images.unsplash.com/photo-1540317580384-e5d43616b9aa",
     category: "Conference"
   },
   {
@@ -36,7 +36,7 @@ const FEATURED_EVENTS = [
     location: "The Epicurean Room, NYC",
     price: "$120",
     organizer: "Chef Kenji",
-    image: "https://images.unsplash.com/photo-1553621042-f6e147245754?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    image: "https://images.unsplash.com/photo-1553621042-f6e147245754",
     category: "Workshop"
   },
   {
@@ -46,7 +46,7 @@ const FEATURED_EVENTS = [
     location: "Pixel Lounge, Seattle",
     price: "Free",
     organizer: "IGDA Seattle",
-    image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f",
     category: "Meetup"
   }
 ]
@@ -58,6 +58,116 @@ const CATEGORIES = [
   { name: "Health", icon: <Video className="h-6 w-6" />, count: 215 },
   { name: "Meetup", icon: <MapPin className="h-6 w-6" />, count: 58 },
 ]
+
+const CAROUSEL_ITEMS = [
+  {
+    title: "Neon Nights Festival",
+    subtitle: "Feel the music under the stars",
+    image: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4",
+    link: "/events/1",
+    badge: "Concert"
+  },
+  {
+    title: "AI Future Summit",
+    subtitle: "Explore the future of technology",
+    image: "https://images.unsplash.com/photo-1540317580384-e5d43616b9aa",
+    link: "/events/2",
+    badge: "Conference"
+  },
+  {
+    title: "Sushi Masterclass",
+    subtitle: "Cook like a pro chef",
+    image: "https://images.unsplash.com/photo-1553621042-f6e147245754",
+    link: "/events/3",
+    badge: "Workshop"
+  }
+]
+
+function HeroCarousel() {
+  const [current, setCurrent] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (isPaused) return
+
+    const timer = setInterval(() => {
+      setCurrent((prev) =>
+        prev === CAROUSEL_ITEMS.length - 1 ? 0 : prev + 1
+      )
+    }, 2000)
+
+    return () => clearInterval(timer)
+  }, [isPaused])
+
+  const next = () =>
+    setCurrent(current === CAROUSEL_ITEMS.length - 1 ? 0 : current + 1)
+
+  const prev = () =>
+    setCurrent(current === 0 ? CAROUSEL_ITEMS.length - 1 : current - 1)
+
+  return (
+    <div
+      className="relative w-full  md:h-55 overflow-hidden rounded-xl mb-10 shadow-lg group border border-white/10"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={current}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="absolute inset-0"
+        >
+          <img
+            src={CAROUSEL_ITEMS[current].image}
+            className="w-full h-full object-cover"
+            alt="Event Banner"
+          />
+
+          <div className="absolute inset-0 bg-linear-to-r from-black/60 via-black/20 to-transparent" />
+
+          <div className="relative z-10 px-6 md:px-10 h-full flex flex-col justify-center w-full md:w-1/2">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-linear-to-r from-pink-500 to-yellow-500 text-white rounded-full animate-pulse">
+                🔥 Trending
+              </span>
+
+              <Badge className="bg-white/10 text-white border border-white/20 text-xs">
+                {CAROUSEL_ITEMS[current].badge}
+              </Badge>
+            </div>
+
+            <h2 className="text-xl md:text-3xl font-black text-white mb-1 uppercase tracking-tight">
+              {CAROUSEL_ITEMS[current].title}
+            </h2>
+
+            <p className="text-sm md:text-base text-white/90 mb-4">
+              {CAROUSEL_ITEMS[current].subtitle}
+            </p>
+
+            <Button
+              onClick={() => navigate(CAROUSEL_ITEMS[current].link)}
+              className="bg-white text-black text-sm px-5 py-2 rounded-md font-semibold w-fit hover:bg-gray-200"
+            >
+              Book Now
+            </Button>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-1.5 bg-black/30 rounded-full text-white">
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+
+      <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-1.5 bg-black/30 rounded-full text-white">
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  )
+}
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -73,6 +183,9 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen">
+
+      <HeroCarousel />
+
       {/* Hero Section */}
       <section className="relative pt-24 pl-8 pr-8 pb-32 md:pt-32 md:pb-40 overflow-hidden">
         {/* Background Gradients */}
@@ -142,7 +255,7 @@ export function HomePage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="flex-1 w-full h-[400px] md:h-[500px] lg:h-[600px] relative rounded-3xl overflow-hidden glass mix-blend-screen flex items-center justify-center perspective-1000"
+              className="flex-1 w-full h-100 md:h-125 lg:h-150 relative rounded-3xl overflow-hidden glass mix-blend-screen flex items-center justify-center perspective-1000"
             >
               {/* Interactive Floating Ticket Elements */}
               <motion.div 
@@ -156,7 +269,7 @@ export function HomePage() {
                   repeat: Infinity,
                   ease: "easeInOut" 
                 }}
-                className="w-64 h-80 glass-card bg-gradient-to-br from-brand-600/40 to-blue-600/40 border border-white/20 rounded-2xl shadow-2xl relative z-20 flex flex-col p-6 backdrop-blur-xl"
+                className="w-64 h-80 glass-card bg-linear-to-br from-brand-600/40 to-blue-600/40 border border-white/20 rounded-2xl shadow-2xl relative z-20 flex flex-col p-6 backdrop-blur-xl"
                 style={{ transformStyle: "preserve-3d" }}
               >
                 <div className="absolute top-4 right-4 animate-pulse"><Star className="text-yellow-400 w-6 h-6 fill-yellow-400" /></div>
@@ -183,7 +296,7 @@ export function HomePage() {
                 transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
                 className="absolute w-[150%] h-[150%] -z-10 bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(139,92,246,0.2)_360deg)] rounded-full mix-blend-plus-lighter"
               />
-              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background to-transparent z-10" />
+              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-background to-transparent z-10" />
             </motion.div>
           </div>
         </div>
@@ -280,11 +393,28 @@ export function HomePage() {
                       </div>
                     </div>
                   </CardContent>
-                  <div className="p-5 pt-0 mt-auto">
-                    <Button variant="outline" className="w-full" asChild>
-                      <Link to={`/events/${event.id}`}>View Details</Link>
-                    </Button>
-                  </div>
+                  <div className="flex gap-2">
+  <Button variant="outline" className="w-full" asChild>
+    <Link to={`/events/${event.id}`}>View Details</Link>
+  </Button>
+
+ <button
+  onClick={() => {
+    const existing = JSON.parse(localStorage.getItem("favorites") || "[]")
+
+    const alreadySaved = existing.some(
+      (e) => e.title === event.title
+    )
+
+    if (!alreadySaved) {
+      const updated = [...existing, event]
+      localStorage.setItem("favorites", JSON.stringify(updated))
+    }
+  }}
+>
+  ⭐
+</button>
+</div>
                 </Card>
               </motion.div>
             ))}
@@ -298,36 +428,11 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Platform Stats Section */}
-      <section className="py-20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-brand-900/10 dark:bg-brand-950/20" />
-        <div className="container mx-auto px-4 relative z-10 max-w-5xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div className="glass-card p-6 md:p-8">
-              <div className="text-4xl md:text-5xl font-bold text-brand-500 mb-2">10k+</div>
-              <div className="text-sm md:text-base font-medium text-muted-foreground">Events Hosted</div>
-            </div>
-            <div className="glass-card p-6 md:p-8">
-              <div className="text-4xl md:text-5xl font-bold text-blue-500 mb-2">2M+</div>
-              <div className="text-sm md:text-base font-medium text-muted-foreground">Active Users</div>
-            </div>
-            <div className="glass-card p-6 md:p-8">
-              <div className="text-4xl md:text-5xl font-bold text-emerald-500 mb-2">5M+</div>
-              <div className="text-sm md:text-base font-medium text-muted-foreground">Tickets Sold</div>
-            </div>
-            <div className="glass-card p-6 md:p-8">
-              <div className="text-4xl md:text-5xl font-bold text-amber-500 mb-2">150+</div>
-              <div className="text-sm md:text-base font-medium text-muted-foreground">Cities Covered</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="py-24">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="relative rounded-3xl overflow-hidden bg-brand-900 shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-r from-brand-600 to-blue-600 opacity-90" />
+            <div className="absolute inset-0 bg-linear-to-r from-brand-600 to-blue-600 opacity-90" />
             
             {/* Shapes */}
             <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 rounded-full bg-white opacity-10 blur-3xl" />
@@ -340,9 +445,12 @@ export function HomePage() {
               <p className="text-blue-100 text-lg md:text-xl mb-10 max-w-2xl">
                 Create, manage, and promote your events easily. Reach thousands of potential attendees in your city.
               </p>
-              <Button size="lg" className="bg-white text-brand-600 hover:bg-blue-50 hover:text-brand-700 h-14 px-8 text-lg font-semibold rounded-xl">
-                Start Hosting For Free
-              </Button>
+             <Link
+  to="/auth"
+  className="inline-block px-6 py-3 rounded-lg bg-white text-primary font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg"
+>
+  Start Hosting For Free
+</Link>
             </div>
           </div>
         </div>
