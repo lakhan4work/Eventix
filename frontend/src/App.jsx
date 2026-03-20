@@ -21,7 +21,6 @@ import { FavoritesPage } from "./pages/FavoritesPage"
 import { OrganizerDashboard } from "./pages/OrganizerDashboard"
 import { OrganizerEventsPage } from "./pages/OrganizerEventsPage"
 import { OrganizerAttendeesPage } from "./pages/OrganizerAttendeesPage"
-import { OrganizerAnalyticsPage } from "./pages/OrganizerAnalyticsPage"
 import { CreateEventPage } from "./pages/CreateEventPage"
 
 
@@ -81,7 +80,6 @@ function App() {
               <Route path="events" element={<OrganizerEventsPage />} />
               <Route path="create-event" element={<CreateEventPage />} />
               <Route path="attendees" element={<OrganizerAttendeesPage />} />
-              <Route path="analytics" element={<OrganizerAnalyticsPage />} />
             </Route>
           </Route>
 

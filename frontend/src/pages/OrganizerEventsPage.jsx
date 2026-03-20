@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Link } from "react-router-dom"
 import { Calendar, MoreVertical, PlusCircle, Search, Filter, Eye, Edit, Trash2 } from "lucide-react"
 import { Button } from "../components/ui/Button"
@@ -15,6 +16,40 @@ const MY_EVENTS = [
 ]
 
 export function OrganizerEventsPage() {
+
+  // ✅ FIXED: added missing state
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("All")
+  const [events, setEvents] = useState(MY_EVENTS)
+
+  // ✅ filter logic (now works)
+  const filteredEvents = events.filter((event) => {
+    const matchesSearch = event.title
+      .toLowerCase()
+      .includes(search.toLowerCase())
+
+    const matchesStatus =
+      statusFilter === "All" || event.status === statusFilter
+
+    return matchesSearch && matchesStatus
+  })
+
+  // ✅ actions
+  const handleDelete = (id) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this event?")
+    if (confirmDelete) {
+      setEvents(events.filter(event => event.id !== id))
+    }
+  }
+
+  const handleEdit = (event) => {
+    alert(`Editing: ${event.title}`)
+  }
+
+  const handleView = (event) => {
+    alert(`Viewing: ${event.title}`)
+  }
+
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -22,26 +57,41 @@ export function OrganizerEventsPage() {
           <h1 className="text-3xl font-bold tracking-tight">My Events</h1>
           <p className="text-muted-foreground mt-1">Manage and track all your hosted events.</p>
         </div>
-        <Button variant="gradient" className="gap-2 shrink-0" asChild>
-          <Link to="/create-event">
-            <PlusCircle className="h-4 w-4" /> Create Event
-          </Link>
-        </Button>
       </div>
 
       <Card className="bg-card mb-8">
         <CardContent className="p-4 flex flex-col md:flex-row gap-4 justify-between items-center">
+          
           <div className="flex w-full md:w-auto gap-4">
+            
             <div className="relative w-full md:w-80">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search events..." className="pl-9 bg-muted/50" />
+              <Input
+                placeholder="Search events..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 bg-muted/50"
+              />
             </div>
-            <Button variant="outline" className="shrink-0 gap-2">
-              <Filter className="h-4 w-4" /> Filter
-            </Button>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-muted/50 border border-border rounded-md px-3 py-2 text-sm"
+            >
+              <option value="All">All</option>
+              <option value="Published">Published</option>
+              <option value="Draft">Draft</option>
+              <option value="Unpublished">Unpublished</option>
+            </select>
+
           </div>
+
           <div className="flex gap-2 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">6</span> Total Events
+            <span className="font-medium text-foreground">
+              {filteredEvents.length}
+            </span> 
+            Total Events
           </div>
         </CardContent>
       </Card>
@@ -59,18 +109,22 @@ export function OrganizerEventsPage() {
                 <th className="px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
+
             <tbody className="divide-y divide-border/50">
-              {MY_EVENTS.map((event) => (
+              {filteredEvents.map((event) => (
                 <tr key={event.id} className="hover:bg-muted/20 transition-colors">
+
                   <td className="px-6 py-4 font-medium text-foreground">
                     {event.title}
                   </td>
+
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       {event.date}
                     </div>
                   </td>
+
                   <td className="px-6 py-4">
                     <Badge variant="outline" className={`
                       ${event.status === 'Published' ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10' : ''}
@@ -80,6 +134,7 @@ export function OrganizerEventsPage() {
                       {event.status}
                     </Badge>
                   </td>
+
                   <td className="px-6 py-4 text-right">
                     <div className="flex flex-col items-end">
                       <span>{event.attendees} / {event.capacity}</span>
@@ -91,25 +146,33 @@ export function OrganizerEventsPage() {
                       </div>
                     </div>
                   </td>
+
                   <td className="px-6 py-4 text-right font-medium">
                     {event.sales}
                   </td>
+
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+
+                      <Button onClick={() => handleView(event)} variant="ghost" size="icon">
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-500">
+
+                      <Button onClick={() => handleEdit(event)} variant="ghost" size="icon">
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500">
+
+                      <Button onClick={() => handleDelete(event.id)} variant="ghost" size="icon">
                         <Trash2 className="h-4 w-4" />
                       </Button>
+
                     </div>
                   </td>
+
                 </tr>
               ))}
             </tbody>
+
           </table>
         </div>
       </div>
