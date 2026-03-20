@@ -20,7 +20,6 @@ import { ProfilePage } from "./pages/ProfilePage"
 import { OrganizerDashboard } from "./pages/OrganizerDashboard"
 import { OrganizerEventsPage } from "./pages/OrganizerEventsPage"
 import { OrganizerAttendeesPage } from "./pages/OrganizerAttendeesPage"
-import { OrganizerAnalyticsPage } from "./pages/OrganizerAnalyticsPage"
 import { CreateEventPage } from "./pages/CreateEventPage"
 import ScrollToTop from "./utills/ScrollToTop"
 
@@ -56,7 +55,6 @@ function App() {
               <Route path="events" element={<OrganizerEventsPage />} />
               <Route path="create-event" element={<CreateEventPage />} />
               <Route path="attendees" element={<OrganizerAttendeesPage />} />
-              <Route path="analytics" element={<OrganizerAnalyticsPage />} />
             </Route>
           </Route>
 

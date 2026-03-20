@@ -17,7 +17,6 @@ export function OrganizerLayout() {
     { name: "My Events", path: "/organizer/events", icon: Calendar },
     { name: "Create Event", path: "/organizer/create-event", icon: PlusCircle },
     { name: "Attendees", path: "/organizer/attendees", icon: Users },
-    { name: "Analytics", path: "/organizer/analytics", icon: BarChart3 },
   ]
 
   return (
@@ -61,7 +60,7 @@ export function OrganizerLayout() {
             })}
           </div>
 
-          <div className="px-3 mt-8 mb-2">
+          {/* <div className="px-3 mt-8 mb-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Account</p>
           </div>
           <div className="space-y-1">
@@ -73,7 +72,7 @@ export function OrganizerLayout() {
               <Settings className="h-4 w-4" />
               Settings
             </Link>
-          </div>
+          </div> */}
         </div>
         
         <div className="p-4 border-t border-border mt-auto">

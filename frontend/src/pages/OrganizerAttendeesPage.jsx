@@ -18,12 +18,50 @@ const ATTENDEES = [
 
 export function OrganizerAttendeesPage() {
   const [search, setSearch] = useState("")
-  
-  const filteredAttendees = ATTENDEES.filter(a => 
-    a.name.toLowerCase().includes(search.toLowerCase()) || 
-    a.email.toLowerCase().includes(search.toLowerCase()) ||
-    a.event.toLowerCase().includes(search.toLowerCase())
-  )
+  const [attendees, setAttendees] = useState(ATTENDEES)
+
+  // ✅ NEW FILTER STATES (ONLY ADDITION)
+  const [selectedEvent, setSelectedEvent] = useState("")
+  const [selectedStatus, setSelectedStatus] = useState("")
+
+  const handleEmail = (email, name) => {
+    const subject = encodeURIComponent("Regarding your event registration")
+    const body = encodeURIComponent(
+      `Hi ${name},\n\nThis is regarding your event registration.\n\nBest regards,\nEvent Organizer`
+    )
+
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`
+  }
+
+  const handleApprove = (id) => {
+    const updated = attendees.map(a =>
+      a.id === id ? { ...a, status: "Confirmed" } : a
+    )
+    setAttendees(updated)
+  }
+
+  const handleCancel = (id) => {
+    const confirmAction = window.confirm("Are you sure you want to cancel this attendee?")
+    if (!confirmAction) return
+
+    const updated = attendees.map(a =>
+      a.id === id ? { ...a, status: "Cancelled" } : a
+    )
+    setAttendees(updated)
+  }
+
+  // ✅ UPDATED FILTER LOGIC (ONLY CHANGE)
+  const filteredAttendees = attendees.filter(a => {
+    const matchesSearch =
+      a.name.toLowerCase().includes(search.toLowerCase()) ||
+      a.email.toLowerCase().includes(search.toLowerCase()) ||
+      a.event.toLowerCase().includes(search.toLowerCase())
+
+    const matchesEvent = selectedEvent ? a.event === selectedEvent : true
+    const matchesStatus = selectedStatus ? a.status === selectedStatus : true
+
+    return matchesSearch && matchesEvent && matchesStatus
+  })
 
   return (
     <div>
@@ -31,14 +69,6 @@ export function OrganizerAttendeesPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Attendees</h1>
           <p className="text-muted-foreground mt-1">Manage registrations across all your events.</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" className="gap-2 shrink-0">
-            <Mail className="h-4 w-4" /> Message All
-          </Button>
-          <Button variant="gradient" className="gap-2 shrink-0">
-            <Download className="h-4 w-4" /> Export CSV
-          </Button>
         </div>
       </div>
 
@@ -56,17 +86,32 @@ export function OrganizerAttendeesPage() {
             </div>
             
             <div className="flex gap-3 w-full md:w-auto">
-              <Select className="bg-muted/50 border-border/50 min-w-[160px]">
+
+              {/* ✅ CONNECTED EVENT FILTER */}
+              <Select
+                value={selectedEvent}
+                onChange={(e) => setSelectedEvent(e.target.value)}
+                className="bg-muted/50 border-border/50 min-w-[160px]"
+              >
                 <option value="">All Events</option>
-                <option value="neon">Neon Nights Festival</option>
-                <option value="tech">Tech Startup Pitch</option>
+                <option value="Neon Nights Music Festival">Neon Nights Music Festival</option>
+                <option value="Tech Startup Pitch Night">Tech Startup Pitch Night</option>
+                <option value="Web3 Developer Summit">Web3 Developer Summit</option>
+                <option value="Yoga & Mindfulness Retreat">Yoga & Mindfulness Retreat</option>
               </Select>
-              <Select className="bg-muted/50 border-border/50 min-w-[140px]">
+
+              {/* ✅ CONNECTED STATUS FILTER */}
+              <Select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="bg-muted/50 border-border/50 min-w-[140px]"
+              >
                 <option value="">Status: All</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="pending">Pending</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Pending">Pending</option>
+                <option value="Cancelled">Cancelled</option>
               </Select>
+
             </div>
           </div>
         </CardContent>
@@ -119,15 +164,25 @@ export function OrganizerAttendeesPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        onClick={() => handleEmail(attendee.email, attendee.name)}
+                      >
                         <Mail className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-emerald-500">
+
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-emerald-500"
+                        onClick={() => handleApprove(attendee.id)}
+                      >
                         <UserCheck className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500">
+
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500"
+                        onClick={() => handleCancel(attendee.id)}
+                      >
                         <ShieldOff className="h-4 w-4" />
                       </Button>
+
                     </div>
                   </td>
                 </tr>
@@ -144,7 +199,7 @@ export function OrganizerAttendeesPage() {
         </div>
         
         <div className="p-4 border-t border-border flex items-center justify-between text-sm text-muted-foreground bg-muted/10">
-          <div>Showing 1 to {filteredAttendees.length} of {ATTENDEES.length} entries</div>
+          <div>Showing 1 to {filteredAttendees.length} of {attendees.length} entries</div>
           <div className="flex gap-1">
             <Button variant="outline" size="sm" disabled>Previous</Button>
             <Button variant="outline" size="sm" disabled>Next</Button>
