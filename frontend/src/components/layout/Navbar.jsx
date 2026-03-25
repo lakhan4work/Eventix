@@ -14,7 +14,7 @@ export function Navbar() {
   { name: "Events", path: "/events" },
   { name: "Explore", path: "/events" },
   { name: "My Tickets", path: "/my-tickets" },
-  { name: "Favorites", path: "/favorites" },
+  //{ name: "Favorites", path: "/favorites" },
 ]
   
   if (user?.role === "organizer") {

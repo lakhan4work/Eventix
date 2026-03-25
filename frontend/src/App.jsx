@@ -15,7 +15,7 @@ import { EventsPage } from "./pages/EventsPage"
 import { EventDetailsPage } from "./pages/EventDetailsPage"
 import { MyTicketsPage } from "./pages/MyTicketsPage"
 import { ProfilePage } from "./pages/ProfilePage"
-import { FavoritesPage } from "./pages/FavoritesPage"
+// import { FavoritesPage } from "./pages/FavoritesPage"
 
 // Organizer Pages
 import { OrganizerDashboard } from "./pages/OrganizerDashboard"
@@ -50,7 +50,7 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="events" element={<EventsPage />} />
             <Route path="events/:id" element={<EventDetailsPage />} />
-            <Route path="favorites" element={<FavoritesPage />} />
+            {/* <Route path="favorites" element={<FavoritesPage />} /> */}
             
 
             {/* ✅ Added Footer Routes */}
