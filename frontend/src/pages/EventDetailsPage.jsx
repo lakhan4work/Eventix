@@ -158,7 +158,6 @@ export function EventDetailsPage() {
               <Card className="glass-card border-brand-500/30 shadow-[0_8px_30px_rgb(139,92,246,0.1)]">
                 <CardContent className="p-6">
                   <div className="text-center mb-6">
-                    <p className="text-muted-foreground text-sm uppercase tracking-wider font-semibold mb-1">Starting From</p>
                     <div className="text-4xl font-bold text-gradient">{event.price}</div>
                   </div>
                   
@@ -176,48 +175,11 @@ export function EventDetailsPage() {
                       <span className="font-medium text-right">{event.organizer}</span>
                     </div>
                   </div>
-                  
-                  <h3 className="font-bold mb-3">Select Tickets</h3>
-                  <div className="space-y-3 mb-6">
-                    {event.tickets.map((ticket, idx) => (
-                      <div key={idx} className={`p-4 rounded-xl border ${idx === 0 ? 'border-brand-500 bg-brand-500/5' : 'border-border bg-card/50 cursor-pointer hover:border-brand-500/50'}`}>
-                        <div className="flex justify-between items-start mb-1">
-                          <div className="font-semibold flex items-center gap-2">
-                            {idx === 0 && <CheckCircle className="h-4 w-4 text-brand-500" />}
-                            {ticket.type}
-                          </div>
-                          <div className="font-bold text-lg">{ticket.price}</div>
-                        </div>
-                        <div className="text-xs text-muted-foreground mb-2">{ticket.info}</div>
-                        <div className="text-xs font-medium text-orange-400">
-                          Only {ticket.remaining} left!
-                        </div>
-                      </div>
-                    ))}
-                  </div>
 
                   <Button variant="gradient" size="lg" className="w-full text-lg h-14 rounded-xl shadow-lg shadow-brand-500/25">
                     <Ticket className="mr-2 h-5 w-5" />
                     Register Now
                   </Button>
-                </CardContent>
-              </Card>
-
-              {/* Share Card */}
-              <Card className="bg-card/50 border-white/5">
-                <CardContent className="p-6 flex items-center justify-between">
-                  <span className="font-medium">Share Event</span>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="icon" className="rounded-full w-10 h-10">
-                      <Twitter className="h-4 w-4 text-[#1DA1F2]" />
-                    </Button>
-                    <Button variant="outline" size="icon" className="rounded-full w-10 h-10">
-                      <Facebook className="h-4 w-4 text-[#4267B2]" />
-                    </Button>
-                    <Button variant="outline" size="icon" className="rounded-full w-10 h-10">
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
 
