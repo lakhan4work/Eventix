@@ -32,7 +32,7 @@ import Blog from "./pages/Blog"
 import Terms from "./pages/Terms"
 import Privacy from "./pages/Privacy"
 import Cookies from "./pages/Cookies"
-import ScrollToTop from "./utills/ScrollToTop"
+import ScrollToTop from "./utils/ScrollToTop"
 
 
 function App() {
