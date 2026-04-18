@@ -1,55 +1,16 @@
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { Calendar, MapPin, Search, Star, Ticket, TrendingUp, Users, Video, ChevronLeft, ChevronRight } from "lucide-react"
+import { Calendar, MapPin, Search, Star, Ticket, TrendingUp, Users, Video, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
 import { Select } from "../components/ui/Select"
 import { Card, CardContent } from "../components/ui/Card"
 import { Badge } from "../components/ui/Badge"
+import { getAllEvents } from "../services/events.services"
 
-const FEATURED_EVENTS = [
-  {
-    id: 1,
-    title: "Neon Nights Music Festival",
-    date: "Aug 15, 2026",
-    location: "Downtown Arena, LA",
-    price: "$85",
-    organizer: "LiveNation",
-    image: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4",
-    category: "Concert"
-  },
-  {
-    id: 2,
-    title: "Future of AI Conference",
-    date: "Sep 22, 2026",
-    location: "Moscone Center, SF",
-    price: "$299",
-    organizer: "TechWeb",
-    image: "https://images.unsplash.com/photo-1540317580384-e5d43616b9aa",
-    category: "Conference"
-  },
-  {
-    id: 3,
-    title: "Culinary Masterclass: Sushi",
-    date: "Jul 10, 2026",
-    location: "The Epicurean Room, NYC",
-    price: "$120",
-    organizer: "Chef Kenji",
-    image: "https://images.unsplash.com/photo-1553621042-f6e147245754",
-    category: "Workshop"
-  },
-  {
-    id: 4,
-    title: "Indie Game Developers Meetup",
-    date: "Aug 05, 2026",
-    location: "Pixel Lounge, Seattle",
-    price: "Free",
-    organizer: "IGDA Seattle",
-    image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f",
-    category: "Meetup"
-  }
-]
+// Fallback events (shown while API loads or if it fails)
+const FALLBACK_EVENTS = []
 
 const CATEGORIES = [
   { name: "Concert", icon: <Calendar className="h-6 w-6" />, count: 124 },
@@ -173,6 +134,24 @@ export function HomePage() {
   const navigate = useNavigate()
   const [searchLocation, setSearchLocation] = useState("")
   const [searchCategory, setSearchCategory] = useState("")
+  const [featuredEvents, setFeaturedEvents] = useState(FALLBACK_EVENTS)
+  const [eventsLoading, setEventsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setEventsLoading(true)
+        const data = await getAllEvents()
+        const events = data.events || []
+        setFeaturedEvents(events.slice(0, 4))
+      } catch (err) {
+        console.error("Failed to fetch featured events:", err)
+      } finally {
+        setEventsLoading(false)
+      }
+    }
+    fetchEvents()
+  }, [])
 
   const handleSearch = () => {
     const params = new URLSearchParams()
@@ -352,32 +331,43 @@ export function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {FEATURED_EVENTS.map((event, index) => (
+            {eventsLoading ? (
+              <div className="col-span-full flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-brand-500" />
+                <span className="ml-2 text-muted-foreground">Loading events...</span>
+              </div>
+            ) : featuredEvents.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                No events available yet. Check back soon!
+              </div>
+            ) : featuredEvents.map((event, index) => (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
-                key={event.id}
+                key={event._id || event.id}
               >
                 <Card className="glass-card overflow-hidden h-full flex flex-col border-white/5 bg-card/60 cursor-pointer group">
                   <div className="relative h-48 overflow-hidden">
                     <img
-                      src={event.image}
+                      src={event.image?.url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'}
                       alt={event.title}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     <div className="absolute top-3 right-3 bg-background/90 backdrop-blur-md px-3 py-1.5 rounded-full text-sm font-semibold shadow-sm">
-                      {event.price}
+                      {event.price === 0 ? 'Free' : `₹${event.price}`}
                     </div>
-                    <Badge className="absolute top-3 left-3 bg-brand-500 hover:bg-brand-600 border-0">
-                      {event.category}
-                    </Badge>
+                    {event.category && (
+                      <Badge className="absolute top-3 left-3 bg-brand-500 hover:bg-brand-600 border-0 capitalize">
+                        {event.category}
+                      </Badge>
+                    )}
                   </div>
                   <CardContent className="p-5 flex-1 flex flex-col">
                     <div className="flex items-center text-brand-500 text-sm font-medium mb-3">
                       <Calendar className="h-4 w-4 mr-1.5" />
-                      {event.date}
+                      {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                     <h3 className="font-bold text-xl mb-2 line-clamp-2 group-hover:text-brand-400 transition-colors">
                       {event.title}
@@ -387,34 +377,13 @@ export function HomePage() {
                         <MapPin className="h-4 w-4 shrink-0" />
                         <span className="truncate">{event.location}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 shrink-0" />
-                        <span className="truncate">By {event.organizer}</span>
-                      </div>
                     </div>
                   </CardContent>
-                  <div className="flex gap-2">
-  <Button variant="outline" className="w-full" asChild>
-    <Link to={`/events/${event.id}`}>View Details</Link>
-  </Button>
-
- <button
-  onClick={() => {
-    const existing = JSON.parse(localStorage.getItem("favorites") || "[]")
-
-    const alreadySaved = existing.some(
-      (e) => e.title === event.title
-    )
-
-    if (!alreadySaved) {
-      const updated = [...existing, event]
-      localStorage.setItem("favorites", JSON.stringify(updated))
-    }
-  }}
->
-  ⭐
-</button>
-</div>
+                  <div className="flex gap-2 px-5 pb-5">
+                    <Button variant="outline" className="w-full" asChild>
+                      <Link to={`/events/${event._id}`}>View Details</Link>
+                    </Button>
+                  </div>
                 </Card>
               </motion.div>
             ))}

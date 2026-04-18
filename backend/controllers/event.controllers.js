@@ -76,7 +76,7 @@ const createEvent = async (req, res) => {
 
 const getEvents = async (req, res) => {
     try {
-        const events = await Event.find({id: null}).select('-agenda -speakers -createdAt -updatedAt');
+        const events = await Event.find({}).select('-agenda -speakers -createdAt -updatedAt');
         res.status(200).json({
             success: true,
             message: 'Events fetched successfully',

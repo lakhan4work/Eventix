@@ -1,53 +1,82 @@
-import { useState } from "react"
-import { Link } from "react-router-dom"
-import { Calendar, MoreVertical, PlusCircle, Search, Filter, Eye, Edit, Trash2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { Calendar, Search, Eye, Edit, Trash2, Loader2 } from "lucide-react"
 import { Button } from "../components/ui/Button"
 import { Card, CardContent } from "../components/ui/Card"
 import { Input } from "../components/ui/Input"
 import { Badge } from "../components/ui/Badge"
-
-const MY_EVENTS = [
-  { id: 1, title: "Neon Nights Music Festival", date: "Aug 15, 2026", status: "Published", attendees: 1240, capacity: 1500, sales: "$105,400" },
-  { id: 2, title: "Tech Startup Pitch Night", date: "Sep 02, 2026", status: "Published", attendees: 210, capacity: 300, sales: "$12,500" },
-  { id: 3, title: "Culinary Masterclass: Sushi", date: "Jul 22, 2026", status: "Draft", attendees: 0, capacity: 50, sales: "$0" },
-  { id: 4, title: "Yoga & Mindfulness Retreat", date: "Oct 10, 2026", status: "Published", attendees: 12, capacity: 20, sales: "$2,400" },
-  { id: 5, title: "Web3 Developer Summit", date: "Nov 05, 2026", status: "Published", attendees: 450, capacity: 500, sales: "$42,000" },
-  { id: 6, title: "Indie Game Show", date: "Dec 01, 2026", status: "Unpublished", attendees: 0, capacity: 200, sales: "$0" },
-]
+import { getEventByOrganizer, deleteEvent } from "../services/events.services"
 
 export function OrganizerEventsPage() {
-
-  // ✅ FIXED: added missing state
+  const navigate = useNavigate()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("All")
-  const [events, setEvents] = useState(MY_EVENTS)
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
-  // ✅ filter logic (now works)
+  useEffect(() => {
+    fetchEvents()
+  }, [])
+
+  const fetchEvents = async () => {
+    try {
+      setLoading(true)
+      const data = await getEventByOrganizer()
+      // Backend returns { success, message, events }
+      setEvents(data.events || [])
+    } catch (err) {
+      console.error("Failed to fetch organizer events:", err)
+      setError("Failed to load your events.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Filter logic
   const filteredEvents = events.filter((event) => {
     const matchesSearch = event.title
       .toLowerCase()
       .includes(search.toLowerCase())
 
     const matchesStatus =
-      statusFilter === "All" || event.status === statusFilter
+      statusFilter === "All" || event.status === statusFilter.toLowerCase()
 
     return matchesSearch && matchesStatus
   })
 
-  // ✅ actions
-  const handleDelete = (id) => {
+  // Actions
+  const handleDelete = async (id) => {
     const confirmDelete = window.confirm("Are you sure you want to delete this event?")
-    if (confirmDelete) {
-      setEvents(events.filter(event => event.id !== id))
+    if (!confirmDelete) return
+
+    try {
+      await deleteEvent(id)
+      setEvents(events.filter(event => event._id !== id))
+    } catch (err) {
+      alert(err?.data?.message || err?.message || "Failed to delete event")
     }
   }
 
-  const handleEdit = (event) => {
-    alert(`Editing: ${event.title}`)
+  const handleView = (event) => {
+    navigate(`/events/${event._id}`)
   }
 
-  const handleView = (event) => {
-    alert(`Viewing: ${event.title}`)
+  // Helpers
+  const formatDate = (dateStr) => {
+    if (!dateStr) return ""
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  const formatPrice = (p) => (p === 0 ? "Free" : `₹${p}`)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+        <span className="ml-3 text-muted-foreground">Loading your events...</span>
+      </div>
+    )
   }
 
   return (
@@ -58,6 +87,12 @@ export function OrganizerEventsPage() {
           <p className="text-muted-foreground mt-1">Manage and track all your hosted events.</p>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm mb-6">
+          {error}
+        </div>
+      )}
 
       <Card className="bg-card mb-8">
         <CardContent className="p-4 flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -80,9 +115,9 @@ export function OrganizerEventsPage() {
               className="bg-muted/50 border border-border rounded-md px-3 py-2 text-sm"
             >
               <option value="All">All</option>
-              <option value="Published">Published</option>
-              <option value="Draft">Draft</option>
-              <option value="Unpublished">Unpublished</option>
+              <option value="Active">Active</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
             </select>
 
           </div>
@@ -104,15 +139,21 @@ export function OrganizerEventsPage() {
                 <th className="px-6 py-4 font-medium">Event Name</th>
                 <th className="px-6 py-4 font-medium">Date</th>
                 <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium text-right">Attendees</th>
-                <th className="px-6 py-4 font-medium text-right">Sales</th>
+                <th className="px-6 py-4 font-medium text-right">Tickets</th>
+                <th className="px-6 py-4 font-medium text-right">Revenue</th>
                 <th className="px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-border/50">
-              {filteredEvents.map((event) => (
-                <tr key={event.id} className="hover:bg-muted/20 transition-colors">
+              {filteredEvents.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                    No events found.
+                  </td>
+                </tr>
+              ) : filteredEvents.map((event) => (
+                <tr key={event._id} className="hover:bg-muted/20 transition-colors">
 
                   <td className="px-6 py-4 font-medium text-foreground">
                     {event.title}
@@ -121,15 +162,15 @@ export function OrganizerEventsPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      {event.date}
+                      {formatDate(event.date)}
                     </div>
                   </td>
 
                   <td className="px-6 py-4">
-                    <Badge variant="outline" className={`
-                      ${event.status === 'Published' ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10' : ''}
-                      ${event.status === 'Draft' ? 'border-amber-500/30 text-amber-500 bg-amber-500/10' : ''}
-                      ${event.status === 'Unpublished' ? 'border-brand-500/30 text-brand-500 bg-brand-500/10' : ''}
+                    <Badge variant="outline" className={`capitalize
+                      ${event.status === 'active' ? 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10' : ''}
+                      ${event.status === 'completed' ? 'border-amber-500/30 text-amber-500 bg-amber-500/10' : ''}
+                      ${event.status === 'cancelled' ? 'border-red-500/30 text-red-500 bg-red-500/10' : ''}
                     `}>
                       {event.status}
                     </Badge>
@@ -137,18 +178,18 @@ export function OrganizerEventsPage() {
 
                   <td className="px-6 py-4 text-right">
                     <div className="flex flex-col items-end">
-                      <span>{event.attendees} / {event.capacity}</span>
+                      <span>{event.ticketsSold || 0} / {event.totalTickets || 0}</span>
                       <div className="w-24 h-1.5 bg-muted rounded-full mt-2 overflow-hidden">
                         <div 
-                          className={`h-full ${event.attendees/event.capacity > 0.8 ? 'bg-emerald-500' : 'bg-brand-500'}`} 
-                          style={{ width: `${(event.attendees / event.capacity) * 100}%` }}
+                          className={`h-full ${(event.ticketsSold || 0) / (event.totalTickets || 1) > 0.8 ? 'bg-emerald-500' : 'bg-brand-500'}`} 
+                          style={{ width: `${((event.ticketsSold || 0) / (event.totalTickets || 1)) * 100}%` }}
                         />
                       </div>
                     </div>
                   </td>
 
                   <td className="px-6 py-4 text-right font-medium">
-                    {event.sales}
+                    ₹{((event.ticketsSold || 0) * event.price).toLocaleString()}
                   </td>
 
                   <td className="px-6 py-4 text-right">
@@ -158,11 +199,7 @@ export function OrganizerEventsPage() {
                         <Eye className="h-4 w-4" />
                       </Button>
 
-                      <Button onClick={() => handleEdit(event)} variant="ghost" size="icon">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-
-                      <Button onClick={() => handleDelete(event.id)} variant="ghost" size="icon">
+                      <Button onClick={() => handleDelete(event._id)} variant="ghost" size="icon">
                         <Trash2 className="h-4 w-4" />
                       </Button>
 

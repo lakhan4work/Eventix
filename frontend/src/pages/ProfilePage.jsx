@@ -1,26 +1,59 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "../lib/auth"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
 import { Card, CardContent } from "../components/ui/Card"
-import { User, Mail, Camera, Save, LogOut } from "lucide-react"
+import { User, Mail, Camera, Save, LogOut, Loader2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import userService from "../services/user.services"
 
 export function ProfilePage() {
-  const { user, logout } = useAuth()
+  const { user, logout, login } = useAuth()
   const navigate = useNavigate()
   
   const [isEditing, setIsEditing] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [profileData, setProfileData] = useState(null)
   const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
+    name: "",
+    email: "",
     bio: "Event enthusiast and regular attendee.",
   })
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true)
+        const data = await userService.getProfile()
+        // Backend returns user object via res.json(req.user)
+        setProfileData(data)
+        setFormData({
+          name: data.name || "",
+          email: data.email || "",
+          bio: "Event enthusiast and regular attendee.",
+        })
+      } catch (err) {
+        console.error("Failed to fetch profile:", err)
+        // Fall back to auth context user
+        if (user) {
+          setProfileData(user)
+          setFormData({
+            name: user.name || "",
+            email: user.email || "",
+            bio: "Event enthusiast and regular attendee.",
+          })
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProfile()
+  }, [])
 
   const handleSave = (e) => {
     e.preventDefault()
     setIsEditing(false)
-    // In a real app, you'd update the user context and backend here
+    // In a real app, you'd call an update profile API here
   }
 
   const handleLogout = () => {
@@ -28,7 +61,17 @@ export function ProfilePage() {
     navigate("/auth")
   }
 
-  if (!user) return null;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+        <span className="ml-3 text-muted-foreground">Loading profile...</span>
+      </div>
+    )
+  }
+
+  const displayUser = profileData || user
+  if (!displayUser) return null;
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl min-h-[calc(100vh-4rem)]">
@@ -52,8 +95,8 @@ export function ProfilePage() {
               <div className="relative mb-4 group">
                 <div className="w-32 h-32 rounded-full border-4 border-background overflow-hidden bg-muted">
                   <img 
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} 
-                    alt={user.name}
+                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${displayUser.name}`} 
+                    alt={displayUser.name}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -62,13 +105,13 @@ export function ProfilePage() {
                 </button>
               </div>
               
-              <h2 className="text-2xl font-bold">{user.name}</h2>
-              <p className="text-brand-400 font-medium capitalize mb-4">{user.role}</p>
+              <h2 className="text-2xl font-bold">{displayUser.name}</h2>
+              <p className="text-brand-400 font-medium capitalize mb-4">{displayUser.role}</p>
               
               <div className="w-full pt-4 border-t border-border mt-2 space-y-3">
                 <div className="flex items-center text-sm text-muted-foreground justify-center gap-2">
                   <Mail className="h-4 w-4" />
-                  {user.email}
+                  {displayUser.email}
                 </div>
               </div>
             </CardContent>
@@ -136,7 +179,11 @@ export function ProfilePage() {
                       variant="ghost" 
                       onClick={() => {
                         setIsEditing(false)
-                        setFormData({name: user.name, email: user.email, bio: "Event enthusiast."})
+                        setFormData({
+                          name: displayUser.name, 
+                          email: displayUser.email, 
+                          bio: "Event enthusiast and regular attendee."
+                        })
                       }}
                     >
                       Cancel

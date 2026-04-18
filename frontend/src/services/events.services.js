@@ -1,15 +1,18 @@
 import { axiosInstance } from '../utils/axiosInstance';
 import { API_PATHS } from '../utils/apiPaths';
 
-const createEvent = async (eventDetails) => {
+const createEvent = async (eventData) => {
   try {
-    const response = await axiosInstance.post(API_PATHS.EVENT.CREATE_EVENT, {...eventDetails});
+    // eventData is a FormData object (supports image upload via multer)
+    const response = await axiosInstance.post(API_PATHS.EVENT.CREATE_EVENT, eventData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
 
     return response.data;
   } catch (error) {
-    throw error.data || { error: 'An unknown error occurred' };
+    throw error.data || error || { message: 'An unknown error occurred' };
   }
-}; 
+};
 
 const getAllEvents = async () => {
   try {
@@ -17,19 +20,19 @@ const getAllEvents = async () => {
 
     return response.data;
   } catch (error) {
-    throw error.data || { error: 'An unknown error occurred' };
+    throw error.data || error || { message: 'An unknown error occurred' };
   }
-}; 
+};
 
 const getEventByOrganizer = async () => {
   try {
-    const response = await axiosInstance.get(API_PATHS.GET_EVENTS_BY_ORGANIZER);
+    const response = await axiosInstance.get(API_PATHS.EVENT.GET_EVENTS_BY_ORGANIZER);
 
     return response.data;
   } catch (error) {
-    throw error.data || { error: 'An unknown error occurred' };
+    throw error.data || error || { message: 'An unknown error occurred' };
   }
-}; 
+};
 
 const getEventById = async (id) => {
   try {
@@ -37,19 +40,19 @@ const getEventById = async (id) => {
 
     return response.data;
   } catch (error) {
-    throw error.data || { error: 'An unknown error occurred' };
+    throw error.data || error || { message: 'An unknown error occurred' };
   }
 };
 
-const updateEvent = async (id) => {
+const updateEvent = async (id, updatedData) => {
   try {
-    const response = await axiosInstance.put(API_PATHS.EVENT.EVENT_BY_ID(id));
+    const response = await axiosInstance.put(API_PATHS.EVENT.EVENT_BY_ID(id), updatedData);
 
     return response.data;
   } catch (error) {
-    throw error.data || { error: 'An unknown error occurred' };
+    throw error.data || error || { message: 'An unknown error occurred' };
   }
-}; 
+};
 
 const deleteEvent = async (id) => {
   try {
@@ -57,8 +60,8 @@ const deleteEvent = async (id) => {
 
     return response.data;
   } catch (error) {
-    throw error.data || { error: 'An unknown error occurred' };
+    throw error.data || error || { message: 'An unknown error occurred' };
   }
 };
 
-export {createEvent, getAllEvents, getEventById, getEventByOrganizer, updateEvent, deleteEvent}
+export { createEvent, getAllEvents, getEventById, getEventByOrganizer, updateEvent, deleteEvent };

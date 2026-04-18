@@ -1,39 +1,66 @@
 import { useState } from "react"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
-import { Ticket, Mail, Lock, User, ArrowRight, Briefcase } from "lucide-react"
+import { Ticket, Mail, Lock, User, ArrowRight, Briefcase, Loader2 } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../lib/auth"
+import userService from "../services/user.services"
 
 export function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
   const [role, setRole] = useState("participant") // "participant" or "organizer"
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { login } = useAuth()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Get form data
+    setError("");
+    setLoading(true);
+
     const formData = new FormData(e.target);
-    const name = formData.get("name") || "Demo User";
+    const name = formData.get("name");
     const email = formData.get("email");
-    
-    // Simulate authentication
-    const userData = {
-      id: Math.random().toString(36).substring(7),
-      name,
-      email,
-      role
-    };
-    
-    login(userData);
-    
-    // Redirect based on role
-    if (role === "organizer") {
-      navigate('/organizer/dashboard');
-    } else {
-      navigate('/');
+    const password = formData.get("password");
+    const confirmPassword = formData.get("confirm-password");
+
+    // Client-side validation for register
+    if (!isLogin) {
+      if (password !== confirmPassword) {
+        setError("Passwords do not match");
+        setLoading(false);
+        return;
+      }
+      if (password.length < 6) {
+        setError("Password should be at least 6 characters");
+        setLoading(false);
+        return;
+      }
+    }
+
+    try {
+      let data;
+      if (isLogin) {
+        data = await userService.login(email, password);
+      } else {
+        data = await userService.register(name, email, password, role);
+      }
+
+      // Backend returns { user: { _id, name, email, role }, token }
+      login(data.user, data.token);
+
+      // Redirect based on role
+      if (data.user.role === "organizer") {
+        navigate('/organizer/dashboard');
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      const msg = err?.data?.message || err?.message || "Something went wrong. Please try again.";
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -109,6 +136,13 @@ export function AuthPage() {
               </button>
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
             <form className="space-y-4 pt-2" onSubmit={handleSubmit}>
               {!isLogin && (
                 <div className="space-y-2">
@@ -137,7 +171,7 @@ export function AuthPage() {
                 <div className="space-y-2">
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input id="confirm-password" placeholder="Confirm Password" type="password" className="pl-10 bg-card border-border" required={!isLogin} />
+                    <Input id="confirm-password" name="confirm-password" placeholder="Confirm Password" type="password" className="pl-10 bg-card border-border" required={!isLogin} />
                   </div>
                 </div>
               )}
@@ -150,9 +184,18 @@ export function AuthPage() {
                 </div>
               )}
 
-              <Button type="submit" variant="primary" className="w-full group bg-brand-600 hover:bg-brand-700">
-                {isLogin ? "Sign In" : "Create Account"}
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              <Button type="submit" variant="primary" className="w-full group bg-brand-600 hover:bg-brand-700" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isLogin ? "Signing In..." : "Creating Account..."}
+                  </>
+                ) : (
+                  <>
+                    {isLogin ? "Sign In" : "Create Account"}
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
               </Button>
             </form>
 
@@ -162,7 +205,7 @@ export function AuthPage() {
               </span>
               <button 
                 type="button" 
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => { setIsLogin(!isLogin); setError(""); }}
                 className="font-medium text-brand-500 hover:text-brand-400"
               >
                 {isLogin ? "Sign up" : "Log in"}
