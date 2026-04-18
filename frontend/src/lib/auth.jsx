@@ -3,35 +3,42 @@ import { createContext, useContext, useState, useEffect } from "react";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // { id, name, email, role: "organizer" | "participant" }
+  const [user, setUser] = useState(null); // { _id, name, email, role }
+  const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate checking for a logged-in user in localStorage on mount
+    // Restore session from localStorage on mount
     const storedUser = localStorage.getItem("eventix-user");
-    if (storedUser) {
+    const storedToken = localStorage.getItem("token");
+    if (storedUser && storedToken) {
       setUser(JSON.parse(storedUser));
+      setToken(storedToken);
     }
     setIsLoading(false);
   }, []);
 
-  const login = (userData) => {
+  const login = (userData, jwtToken) => {
     setUser(userData);
+    setToken(jwtToken);
     localStorage.setItem("eventix-user", JSON.stringify(userData));
+    localStorage.setItem("token", jwtToken);
   };
 
   const logout = () => {
     setUser(null);
+    setToken(null);
     localStorage.removeItem("eventix-user");
+    localStorage.removeItem("token");
   };
 
-  // Mock checking session
+  // Loading state while checking session
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

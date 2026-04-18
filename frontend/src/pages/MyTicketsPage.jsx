@@ -1,61 +1,83 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { Calendar, MapPin, Download, Ticket, QrCode, Bell, Info } from "lucide-react"
+import { Calendar, MapPin, Download, Ticket, QrCode, Loader2, Trash2 } from "lucide-react"
 import { Button } from "../components/ui/Button"
 import { Card } from "../components/ui/Card"
 import { Badge } from "../components/ui/Badge"
-
-const MY_TICKETS = [
-  {
-    id: "TKT-8921",
-    event: "Neon Nights Music Festival",
-    date: "Aug 15, 2026",
-    time: "4:00 PM",
-    location: "Downtown Arena, LA",
-    type: "VIP Access",
-    status: "upcoming",
-    image: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4"
-  },
-  {
-    id: "TKT-4452",
-    event: "Future of AI Conference",
-    date: "Sep 22, 2026",
-    time: "9:00 AM",
-    location: "Moscone Center, SF",
-    type: "General Admission",
-    status: "upcoming",
-    image: "https://images.unsplash.com/photo-1540317580384-e5d43616b9aa"
-  },
-  {
-    id: "TKT-1189",
-    event: "Culinary Masterclass: Sushi",
-    date: "Jul 10, 2026",
-    time: "6:00 PM",
-    location: "The Epicurean Room, NYC",
-    type: "Participating Chef",
-    status: "history",
-    image: "https://images.unsplash.com/photo-1553621042-f6e147245754"
-  },
-  {
-    id: "NOT-0012",
-    event: "Neon Nights Music Festival",
-    date: "Update",
-    time: "Just now",
-    location: "System Notice",
-    type: "Announcement",
-    status: "notices",
-    message: "The main stage schedule has been updated! Check the app for the new lineup times.",
-    image: "https://images.unsplash.com/photo-1470229722913-7c090be5c520"
-  }
-]
+import { getAllBookings, deleteBooking } from "../services/booking.services"
 
 export function MyTicketsPage() {
+  const [bookings, setBookings] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
   const [filter, setFilter] = useState("all")
 
-  const filteredTickets =
-    filter === "all"
-      ? MY_TICKETS
-      : MY_TICKETS.filter((t) => t.status === filter)
+  useEffect(() => {
+    fetchBookings()
+  }, [])
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true)
+      const data = await getAllBookings()
+      // Backend returns { success, message, data: [bookings with populated event] }
+      setBookings(data.data || [])
+    } catch (err) {
+      console.error("Failed to fetch bookings:", err)
+      setError("Failed to load your tickets.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCancelBooking = async (bookingId) => {
+    if (!window.confirm("Are you sure you want to cancel this booking?")) return
+    try {
+      await deleteBooking(bookingId)
+      // Remove from local state
+      setBookings(prev => prev.filter(b => b._id !== bookingId))
+    } catch (err) {
+      alert(err?.data?.message || err?.message || "Failed to cancel booking")
+    }
+  }
+
+  // Helpers
+  const formatDate = (dateStr) => {
+    if (!dateStr) return ""
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  const getImageUrl = (booking) => {
+    if (booking.event?.image?.url) return booking.event.image.url
+    return "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  }
+
+  const isUpcoming = (booking) => {
+    if (!booking.event?.date) return false
+    return new Date(booking.event.date) > new Date() && booking.status === "booked"
+  }
+
+  const isPast = (booking) => {
+    if (!booking.event?.date) return false
+    return new Date(booking.event.date) <= new Date()
+  }
+
+  const filteredBookings = bookings.filter(b => {
+    if (filter === "all") return true
+    if (filter === "upcoming") return isUpcoming(b)
+    if (filter === "history") return isPast(b)
+    if (filter === "cancelled") return b.status === "cancelled"
+    return true
+  })
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+        <span className="ml-3 text-muted-foreground">Loading your tickets...</span>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-muted/30 py-10">
@@ -69,9 +91,16 @@ export function MyTicketsPage() {
           </p>
         </div>
 
+        {/* Error */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm mb-6">
+            {error}
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex border-b border-border mb-8 overflow-x-auto hide-scrollbar">
-          {["all", "upcoming", "history", "notices"].map((tab) => (
+          {["all", "upcoming", "history", "cancelled"].map((tab) => (
             <button
               key={tab}
               className={`px-6 py-3 font-medium text-sm transition-colors relative whitespace-nowrap capitalize ${
@@ -91,23 +120,22 @@ export function MyTicketsPage() {
 
         {/* Tickets */}
         <div className="space-y-6">
-          {filteredTickets.length > 0 ? (
-            filteredTickets.map((ticket) => (
+          {filteredBookings.length > 0 ? (
+            filteredBookings.map((booking) => (
               <Card
-                key={ticket.id}
+                key={booking._id}
                 className="overflow-hidden bg-card border-border hover:border-brand-500/30 transition-colors group"
               >
-                {/* ✅ FIXED HEIGHT CONTAINER */}
-                <div className="flex flex-col md:flex-row h-full min-h-[260px] items-stretch">
+                <div className="flex flex-col md:flex-row h-full min-h-[220px] items-stretch">
 
                   {/* LEFT */}
                   <div className="flex-1 flex flex-col sm:flex-row p-0 md:border-r border-border border-dashed">
                     
                     {/* Image */}
-                    <div className="w-full md:w-48 h-[260px] md:h-auto min-w-[12rem] bg-muted overflow-hidden">
+                    <div className="w-full md:w-48 h-[220px] md:h-auto min-w-[12rem] bg-muted overflow-hidden">
                       <img
-                        src={ticket.image}
-                        alt={ticket.event}
+                        src={getImageUrl(booking)}
+                        alt={booking.event?.title || "Event"}
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           e.target.src = "https://via.placeholder.com/400x300?text=Event"
@@ -118,95 +146,73 @@ export function MyTicketsPage() {
                     {/* Content */}
                     <div className="p-6 flex-1 flex flex-col justify-between">
                       <div>
-
-                        {/* BADGES ONLY IN ALL */}
-                        {filter === "all" && (
-                          <>
-                            {ticket.status === "upcoming" && (
-                              <Badge className="mb-3 bg-brand-500 text-white border-brand-500/30">
-                                Upcoming
-                              </Badge>
-                            )}
-                            {ticket.status === "history" && (
-                              <Badge className="mb-3 bg-gray-500 text-white border-gray-500/30">
-                                History
-                              </Badge>
-                            )}
-                            {ticket.status === "notices" && (
-                              <Badge className="mb-3 bg-indigo-500 text-white border-indigo-500/30">
-                                Notice
-                              </Badge>
-                            )}
-                          </>
-                        )}
+                        {/* Status Badge */}
+                        <Badge className={`mb-3 ${
+                          booking.status === "booked" && isUpcoming(booking)
+                            ? "bg-brand-500 text-white border-brand-500/30"
+                            : booking.status === "cancelled"
+                            ? "bg-red-500 text-white border-red-500/30"
+                            : "bg-gray-500 text-white border-gray-500/30"
+                        }`}>
+                          {booking.status === "booked" && isUpcoming(booking) ? "Upcoming" : 
+                           booking.status === "cancelled" ? "Cancelled" : "Completed"}
+                        </Badge>
 
                         <h3 className="text-xl font-bold mb-2">
-                          {ticket.event}
+                          {booking.event?.title || "Event"}
                         </h3>
 
-                        {ticket.status === "notices" ? (
-                          <p className="text-sm text-muted-foreground bg-muted/40 p-3 rounded-md border">
-                            <Info className="inline w-4 h-4 mr-2" />
-                            {ticket.message}
-                          </p>
-                        ) : (
-                          <div className="space-y-2 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4" />
-                              {ticket.date} at {ticket.time}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4" />
-                              {ticket.location}
-                            </div>
-                            <div className="flex items-center gap-2 font-medium text-foreground">
-                              <Ticket className="h-4 w-4 text-brand-500" />
-                              {ticket.type}
-                              <span className="text-xs text-muted-foreground ml-2">
-                                (ID: {ticket.id})
-                              </span>
-                            </div>
+                        <div className="space-y-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            {formatDate(booking.event?.date)} {booking.event?.time && `at ${booking.event.time}`}
                           </div>
-                        )}
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4" />
+                            {booking.event?.location || "—"}
+                          </div>
+                          <div className="flex items-center gap-2 font-medium text-foreground">
+                            <Ticket className="h-4 w-4 text-brand-500" />
+                            {booking.quantity} ticket(s) • ₹{booking.totalPrice}
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="mt-4">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link to={`/events/1`}>
-                            {ticket.status === "notices"
-                              ? "View Updates"
-                              : "Event Details"}
-                          </Link>
-                        </Button>
+                      <div className="mt-4 flex gap-2">
+                        {booking.event?._id && (
+                          <Button variant="outline" size="sm" asChild>
+                            <Link to={`/events/${booking.event._id}`}>
+                              Event Details
+                            </Link>
+                          </Button>
+                        )}
+                        {booking.status === "booked" && isUpcoming(booking) && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                            onClick={() => handleCancelBooking(booking._id)}
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" /> Cancel
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   {/* RIGHT */}
                   <div className="w-full md:w-64 p-6 flex flex-col items-center justify-center h-full">
-
-                    {ticket.status === "upcoming" ? (
+                    {booking.status === "booked" && isUpcoming(booking) ? (
                       <>
                         <QrCode className="w-20 h-20 mb-4" />
-                        <Button className="w-full gap-2">
-                          <Download className="h-4 w-4" />
-                          Download Pass
-                        </Button>
-                      </>
-                    ) : ticket.status === "notices" ? (
-                      <>
-                        <Bell className="w-12 h-12 mb-3 text-brand-500" />
-                        <Button variant="outline" size="sm">
-                          Mark as Read
-                        </Button>
+                        <p className="text-xs text-muted-foreground mb-2">Booking ID: {booking._id?.slice(-8)}</p>
                       </>
                     ) : (
                       <>
                         <Ticket className="w-12 h-12 mb-3 text-muted-foreground" />
-                        <p className="text-sm mb-2">Event Concluded</p>
-                        <Button variant="outline" size="sm">
-                          Leave Review
-                        </Button>
+                        <p className="text-sm mb-2">
+                          {booking.status === "cancelled" ? "Booking Cancelled" : "Event Concluded"}
+                        </p>
                       </>
                     )}
                   </div>
@@ -218,6 +224,7 @@ export function MyTicketsPage() {
             <div className="text-center py-20">
               <Ticket className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-bold mb-2">No tickets found</h3>
+              <p className="text-muted-foreground mb-4">You haven't booked any events yet.</p>
               <Button asChild>
                 <Link to="/events">Browse Events</Link>
               </Button>

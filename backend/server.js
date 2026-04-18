@@ -35,9 +35,9 @@ import userRoutes from './routes/user.routes.js'
 import eventRoutes from './routes/event.routes.js'
 import bookingRoutes from './routes/booking.routes.js'
 
-app.use('api/users',userRoutes);
-app.use('api/events',eventRoutes);
-app.use('api/bookings', bookingRoutes);
+app.use('/api/users',userRoutes);
+app.use('/api/events',eventRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 
 app.use(errorHandler);

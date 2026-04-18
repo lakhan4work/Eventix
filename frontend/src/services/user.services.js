@@ -10,21 +10,22 @@ const login = async (email, password) => {
 
     return response.data;
   } catch (error) {
-    throw error.data || { error: 'An unknown error occurred' };
+    throw error.data || error || { message: 'An unknown error occurred' };
   }
 };
 
-const register = async (username, email, password) => {
+const register = async (name, email, password, role) => {
   try {
     const response = await axiosInstance.post(API_PATHS.AUTH.REGISTER, {
-      username,
+      name,
       email,
       password,
+      role,
     });
 
     return response.data;
   } catch (error) {
-    throw error.data || { error: 'An unknown error occurred' };
+    throw error.data || error || { message: 'An unknown error occurred' };
   }
 };
 
@@ -34,7 +35,7 @@ const getProfile = async () => {
 
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'An unknown error occurred' };
+    throw error.data || error || { message: 'An unknown error occurred' };
   }
 };
 

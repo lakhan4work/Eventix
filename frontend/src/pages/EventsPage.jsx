@@ -1,38 +1,13 @@
 import { useState, useEffect } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { motion } from "framer-motion"
-import { Calendar, Filter, MapPin, Search, Tag, Users, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { Calendar, Filter, MapPin, Search, Tag, Users, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { Button } from "../components/ui/Button"
 import { Input } from "../components/ui/Input"
 import { Select } from "../components/ui/Select"
 import { Card, CardContent } from "../components/ui/Card"
 import { Badge } from "../components/ui/Badge"
-
-// Generate more dummy events for browsing
-const ALL_EVENTS = Array.from({ length: 12 }).map((_, i) => ({
-  id: i + 1,
-  title: [
-    "Neon Nights Music Festival", "Future of AI Conference", "Culinary Masterclass", 
-    "Indie Game Developers", "Yoga & Mindfulness Retreat", "Startup Pitch Night",
-    "Jazz in the Park", "Web3 Summit 2026", "Street Food Festival",
-    "Digital Art Exhibition", "Marathon Prep Workshop", "Comedy Club Special"
-  ][i],
-  date: new Date(2026, 7 + (i % 3), 15 + i).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-  rawDate: new Date(2026, 7 + (i % 3), 15 + i), // keep raw date for filtering
-  location: ["Los Angeles", "San Francisco", "New York", "Seattle", "Austin", "Chicago"][i % 6] + ", USA",
-  price: i % 4 === 0 ? "Free" : `$${(i * 15 + 45)}`,
-  ticketsRemaining: Math.floor(Math.random() * 200) + 10,
-  organizer: ["LiveNation", "TechWeb", "Chef Kenji", "IGDA", "Wellness Co", "Capital Ventures"][i % 6],
-  image: [
-    "https://images.unsplash.com/photo-1533174000220-db92842c161a",
-    "https://images.unsplash.com/photo-1540317580384-e5d43616b9aa",
-    "https://images.unsplash.com/photo-1553621042-f6e147245754",
-    "https://images.unsplash.com/photo-1550745165-9bc0b252726f",
-    "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b",
-    "https://images.unsplash.com/photo-1559136555-9303baea8ebd"
-  ][i % 6] + "?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-  category: ["Concert", "Conference", "Workshop", "Meetup", "Health", "Business"][i % 6]
-}))
+import { getAllEvents } from "../services/events.services"
 
 // Mini calendar component
 function MiniCalendar({ selectedDate, onDateSelect }) {
@@ -150,9 +125,32 @@ export function EventsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [sortOrder, setSortOrder] = useState("newest")
   const [categories, setCategories] = useState(initialCategory ? [initialCategory] : [])
-  const [selectedDate, setSelectedDate] = useState(null) // now a Date object or null
+  const [selectedDate, setSelectedDate] = useState(null)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [price, setPrice] = useState("any")
+
+  // API state
+  const [allEvents, setAllEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  // Fetch events from backend
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        setLoading(true)
+        const data = await getAllEvents()
+        // Backend returns { success, message, events }
+        setAllEvents(data.events || [])
+      } catch (err) {
+        console.error("Failed to fetch events:", err)
+        setError("Failed to load events. Please try again.")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchEvents()
+  }, [])
 
   const updateURL = (newState) => {
     const params = new URLSearchParams()
@@ -170,14 +168,16 @@ export function EventsPage() {
     }
   }, [initialCategory])
 
-  const filteredEvents = ALL_EVENTS.filter((event) => {
+  // Derive unique categories from API data
+  const availableCategories = [...new Set(allEvents.map(e => e.category).filter(Boolean))]
+
+  const filteredEvents = allEvents.filter((event) => {
     if (searchQuery && !event.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
     if (categories.length > 0 && !categories.includes(event.category)) return false
-    if (price === "free" && event.price !== "Free") return false
-    if (price === "paid" && event.price === "Free") return false
+    if (price === "free" && event.price !== 0) return false
+    if (price === "paid" && event.price === 0) return false
     if (selectedDate) {
-      // Filter: show only events whose rawDate matches the selected calendar date
-      const ed = event.rawDate
+      const ed = new Date(event.date)
       if (
         ed.getFullYear() !== selectedDate.getFullYear() ||
         ed.getMonth() !== selectedDate.getMonth() ||
@@ -186,21 +186,39 @@ export function EventsPage() {
     }
     return true
   }).sort((a, b) => {
-    if (sortOrder === "price_low") {
-      const priceA = a.price === "Free" ? 0 : parseInt(a.price.replace('$', ''))
-      const priceB = b.price === "Free" ? 0 : parseInt(b.price.replace('$', ''))
-      return priceA - priceB
+    if (sortOrder === "price_low") return a.price - b.price
+    if (sortOrder === "price_high") return b.price - a.price
+    if (sortOrder === "popular") {
+      const remA = (a.totalTickets || 0) - (a.ticketsSold || 0)
+      const remB = (b.totalTickets || 0) - (b.ticketsSold || 0)
+      return remA - remB
     }
-    if (sortOrder === "price_high") {
-      const priceA = a.price === "Free" ? 0 : parseInt(a.price.replace('$', ''))
-      const priceB = b.price === "Free" ? 0 : parseInt(b.price.replace('$', ''))
-      return priceB - priceA
-    }
-    if (sortOrder === "popular") return a.ticketsRemaining - b.ticketsRemaining
-    // Default: sort by date ascending when a date is selected, else newest by id
-    if (selectedDate) return a.rawDate - b.rawDate
-    return b.id - a.id
+    // Default: newest first by date
+    return new Date(b.date) - new Date(a.date)
   })
+
+  // Helper to format price
+  const formatPrice = (p) => (p === 0 ? "Free" : `₹${p}`)
+
+  // Helper to format date
+  const formatDate = (dateStr) => {
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  // Helper to get image URL from event
+  const getImageUrl = (event) => {
+    if (event.image?.url) return event.image.url
+    return "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-brand-500" />
+        <span className="ml-3 text-muted-foreground">Loading events...</span>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -243,6 +261,12 @@ export function EventsPage() {
         </div>
       </div>
 
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm mb-6">
+          {error}
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row gap-8">
         {/* Left Sidebar Filters */}
         <aside className={`
@@ -263,7 +287,7 @@ export function EventsPage() {
                 <Tag className="h-4 w-4" /> Category
               </h3>
               <div className="space-y-2">
-                {["Concert", "Conference", "Workshop", "Meetup", "Health", "Business"].map(cat => (
+                {(availableCategories.length > 0 ? availableCategories : ["technology", "business", "health", "education", "entertainment", "other"]).map(cat => (
                   <label key={cat} className="flex items-center gap-2 text-sm cursor-pointer">
                     <input 
                       type="checkbox" 
@@ -277,7 +301,7 @@ export function EventsPage() {
                         updateURL({ categories: updated, selectedDate, price })
                       }}
                     />
-                    <span className="text-muted-foreground hover:text-foreground">{cat}</span>
+                    <span className="text-muted-foreground hover:text-foreground capitalize">{cat}</span>
                   </label>
                 ))}
               </div>
@@ -314,7 +338,7 @@ export function EventsPage() {
                   onDateSelect={(date) => {
                     setSelectedDate(date)
                     updateURL({ categories, selectedDate: date, price })
-                    if (date) setIsCalendarOpen(false) // auto-close on selection
+                    if (date) setIsCalendarOpen(false)
                   }}
                 />
               )}
@@ -386,31 +410,33 @@ export function EventsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
-                key={event.id}
+                key={event._id || event.id}
               >
                 <Card className="glass-card overflow-hidden h-full flex flex-col border-white/5 bg-card/60 group">
                   <div className="relative h-48 overflow-hidden bg-muted">
                     <img
-                      src={event.image}
+                      src={getImageUrl(event)}
                       alt={event.title}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     <div className="absolute top-3 right-3 bg-background/90 backdrop-blur-md px-3 py-1.5 rounded-full text-sm font-semibold shadow-sm">
-                      {event.price}
+                      {formatPrice(event.price)}
                     </div>
-                    <Badge className="absolute top-3 left-3 bg-brand-500/90 hover:bg-brand-600 border-0 shadow-md backdrop-blur-sm">
-                      {event.category}
-                    </Badge>
+                    {event.category && (
+                      <Badge className="absolute top-3 left-3 bg-brand-500/90 hover:bg-brand-600 border-0 shadow-md backdrop-blur-sm capitalize">
+                        {event.category}
+                      </Badge>
+                    )}
                   </div>
                   <CardContent className="p-5 flex-1 flex flex-col relative">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center text-brand-500 text-sm font-medium">
                         <Calendar className="h-4 w-4 mr-1.5" />
-                        {event.date}
+                        {formatDate(event.date)}
                       </div>
                       <div className="text-xs font-medium text-orange-400 bg-orange-400/10 px-2 py-1 rounded-md">
-                        {event.ticketsRemaining} left
+                        {(event.totalTickets || 0) - (event.ticketsSold || 0)} left
                       </div>
                     </div>
                     
@@ -423,34 +449,15 @@ export function EventsPage() {
                         <MapPin className="h-4 w-4 shrink-0 text-muted-foreground/70" />
                         <span className="truncate">{event.location}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 shrink-0 text-muted-foreground/70" />
-                        <span className="truncate">By <span className="text-foreground/80 font-medium">{event.organizer}</span></span>
-                      </div>
                     </div>
                     
                     <Button variant="outline" className="w-full mt-5 hover:bg-brand-500 hover:text-white hover:border-brand-500 transition-colors" asChild>
-                      <Link to={`/events/${event.id}`}>View Details</Link>
+                      <Link to={`/events/${event._id}`}>View Details</Link>
                     </Button>
                   </CardContent>
                 </Card>
               </motion.div>
             ))}
-          </div>
-
-          {/* Pagination */}
-          <div className="mt-12 flex items-center justify-center gap-2">
-            <Button variant="outline" size="icon" disabled className="w-10 h-10 rounded-xl bg-card">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="gradient" className="w-10 h-10 rounded-xl p-0">1</Button>
-            <Button variant="outline" className="w-10 h-10 rounded-xl bg-card">2</Button>
-            <Button variant="outline" className="w-10 h-10 rounded-xl bg-card">3</Button>
-            <span className="px-2 text-muted-foreground">...</span>
-            <Button variant="outline" className="w-10 h-10 rounded-xl bg-card">12</Button>
-            <Button variant="outline" size="icon" className="w-10 h-10 rounded-xl bg-card">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </div>
